@@ -11,12 +11,6 @@ import (
 )
 
 func main() {
-
-	if len(os.Args) != 2 && len(os.Args) != 3 && len(os.Args) != 4 {
-		displayTheUsage()
-		return
-	}
-
 	//  Kui käsureal oli kasutusel lipp -m, siis multiLineFlag on true, muidu on see false.
 	helpFlag := flag.Bool("h", false, "Enable help mode")
 	encodeFlag := flag.Bool("e", false, "Enable encode mode")
@@ -28,39 +22,61 @@ func main() {
 
 	args := flag.Args()
 	// args muutuja hoiab käsurea argumente, mis ei ole lipud. Pärast flag.Parse() väljakutsumist tagastab flag.Args() stringide jada, mis sisaldab
-	// kõiki argumente, mis ei olnud lipud. Näiteks, kui programm käivitatakse go run main.go -e -m input.txt, siis args sisaldab ["input.txt"]
+	// kõiki argumente, mis ei olnud lipud. Näiteks, kui programm käivitatakse go run main.go -m "input.txt", siis args sisaldab ["input.txt"]
+
 	if *helpFlag {
 		displayTheUsage()
 		return
 	}
 
-	if !isBracketsBalanced(args[0]) {
+	if len(args) != 1 {
+		fmt.Println("\nError:\n No input provided or too many arguments")
 		displayTheUsage()
-		fmt.Println("\nError:\n Square brackets are unbalanced")
-
 		return
 	}
 
-	if *encodeFlag {
-		// Handle encoding
-		if len(args) == 1 {
-			encode(args[0], *multiLineFlag) // args[0]: esimene argument käsurealt, mis ei ole lipp.
-			// Eeldatavasti on see tekst, mida kasutaja soovib kodeerida või failinimi, mille sisu tuleb kodeerida.
-			// *multiLineFlag: boolean väärtus, mis näitab, kas mitmerealine režiim on aktiveeritud.
-			// Kui käsureal oli kasutusel lipp -m, siis multiLineFlag on true, muidu on see false.
-		} else {
-			displayTheUsage()
+	var inputBytes []byte
+	var input string
+	var err error
+
+	// Kui -m lipp on kasutusel koos failinimega
+	if *multiLineFlag && strings.HasSuffix(args[0], ".txt") {
+		inputBytes, err = os.ReadFile(args[0]) // os.ReadFile tagastab baitide massiivi ([]byte) ja vea.
+		if err != nil {
+			fmt.Printf("Error:\nError reading file: %s\n", err)
 			return
 		}
+		input = string(inputBytes) // baitide massiiv ([]byte) teisendatakse stringiks.
+	} else if *multiLineFlag {
+		// Kui -m lipp on kasutusel, kuid sisend on antud otse käsurealt
+		input = strings.Replace(args[0], "\\n", "\n", -1) // "-1" tähistab, et asendamine tuleks teha kõikide leidude puhul
+		/*
+			s: string, mida töödeldakse.
+			old: alamstring, mida soovite asendada.
+			new: alamstring, millega soovite old asendada.
+			n: asenduste maksimaalne arv. -1 tähendab, et asendatakse kõik esinemised.
+		*/
 	} else {
-		// Handle decoding
+		// Kui kasutatakse ainult ühte argumenti ilma -m liputa
+		input = args[0]
+	}
+
+	if *encodeFlag {
+		// Encode the input
+		fmt.Println("Encoding not implemented yet")
+	} else {
+		// Decode the input
 		if len(args) == 1 { // kontrollib, kas peale lippude (flags) on antud veel üks argument ja selleks on siis args[0]
 			decode(args[0], *multiLineFlag)
 		} else {
 			displayTheUsage()
 			return
 		}
+		fmt.Println("Decoding not implemented yet")
 	}
+
+	// Edasine töötlus 'input' muutujaga
+	fmt.Println(input)
 }
 
 func decode(input string, multiLine bool) {
@@ -68,13 +84,13 @@ func decode(input string, multiLine bool) {
 		handleMultiLineInput(false)
 	} else {
 		// Decode single line
-		decodedString, _ := decodeString(input)
-		// if !success {
-		// 	fmt.Println(decodedString)
-		// 	return
-		// } else {
-		fmt.Println(decodedString)
-		// }
+		decodedString, success := decodeString(input)
+		if !success {
+			fmt.Println(decodedString)
+			return
+		} else {
+			fmt.Println(decodedString)
+		}
 	}
 }
 
@@ -89,6 +105,13 @@ func encode(input string, multiLine bool) {
 }
 
 func decodeString(input string) (string, bool) {
+
+	if !isBracketsBalanced(input) {
+		displayTheUsage()
+		fmt.Println("\nError:\n Square brackets are unbalanced")
+		return "", false
+	}
+
 	// var result string
 	if strings.Contains(input, "[]") {
 		displayTheUsage()
@@ -122,7 +145,6 @@ func decodeString(input string) (string, bool) {
 			result += match[2]
 		}
 	}
-
 	return result, true
 }
 
@@ -132,6 +154,7 @@ func encodeString(input string) string {
 }
 
 func handleMultiLineInput(isEncoding bool) {
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -171,24 +194,19 @@ func displayTheUsage() {
 	fmt.Println("\n")
 	fmt.Println("\033[45mFor decoding\033[0m")
 
-	fmt.Println("\033[35mFor single line decoding:          Follow this patter => go run main.go \"[[number][single space][character(s)]][same logic as in previous brackets][etc.]]\" \033[0m")
+	fmt.Println("\033[35mFor single line decoding:          Follow this patter => go run main.go \"[\033[34m[number]\033[35m[single space]\033[34m[character(s)]\033[35m][same logic as in previous brackets][etc.]]\" \033[0m")
 	fmt.Println("\033[35m             for example:          go run main.go \"[5 #][5 -_]-[5 #]\" \033[0m")
-	fmt.Println("\033[34mFor decoding from file:            Follow this pattern => go run main.go [file_with_code.txt] \033[0m")
+	fmt.Println("\033[34mFor decoding from file:            add \"-m\" => Follow this pattern => go run main.go -m \"[file_with_code\033[35m.encoded.txt\033[34m]\" \033[0m")
 	fmt.Println("\033[35mFor multiline decoding from input: add \"-m\" => go run main.go -m \033[0m")
-	fmt.Println("\033[35mand enter for example:             \n[5 |\\---/|]\\n[5 | o_o |]\\n[5  \\_^_/ ] \n or \n[5 |\\---/|]\n[5 | o_o |]\n[5  \\_^_/ ]\033[0m")
-	fmt.Println("\033[45m\033[1m NB! After completing the multi-line input in the terminal, please enter the EOF (End Of File) character by pressing CTRL+D on Linux/MacOS systems or CTRL+Z on Windows systems. This signals to the program that input reading is finished. \033[0m\033[22m")
+	fmt.Println("\033[35m          for example:             go run main.go -m \"[5 |\\---/|]\\n[5 | o_o |]\\n[5  \\_^_/ ]\"\033[0m")
 
 	fmt.Println("\n")
 	fmt.Println("\033[44mFor encoding\033[0m")
 	fmt.Println("\033[34mFor single line encoding:          add \"-e\" after main.go (example: go run main.go -e \"[pattern_you_wish_to_encode]\" \033[0m")
 	fmt.Println("\033[34m             for example:          go run main.go -e \"#####-_-_-_-_-_-#####\" \033[0m")
-	fmt.Println("\033[35mFor decoding from file:            Follow this pattern => go run main.go -e [file_with_code.txt] \033[0m")
+	fmt.Println("\033[35mFor decoding from file:            Follow this pattern => go run main.go -e \"[file_with_code\033[34m.art.txt\033[35m]\" \033[0m")
 
-	fmt.Println("\033[34mFor multiline encoding from input: add \"-e\" & \"-m\" (example: go run main.go -e -m)\033[0m")
-	fmt.Println("\033[34mand next lines enter for example:  \n" +
-		"|\\---/||\\---/||\\---/||\\---/||\\---/|\n" +
-		"| o_o || o_o || o_o || o_o || o_o |\n" +
-		" \\_^_/  \\_^_/  \\_^_/  \\_^_/  \\_^_/ \033[0m")
-	fmt.Println("\033[44m\033[1m NB! After completing the multi-line input in the terminal, please enter the EOF (End Of File) character by pressing CTRL+D on Linux/MacOS systems or CTRL+Z on Windows systems. This signals to the program that input reading is finished. \033[0m\033[22m")
+	fmt.Println("\033[44mFor multiline encoding or decoding use files and add \"-e\" or \"-m\" and file name between \" \" \" like this way: \033[45mgo run main.go -m \"cats.encoded.txt\"\033[0m")
+	fmt.Println("\n")
 
 }
