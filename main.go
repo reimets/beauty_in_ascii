@@ -28,38 +28,45 @@ func main() {
 		displayTheUsage()
 		return
 	}
+
 	// var inputBytes []byte
 	// var err error
+	var input string
+
+	if len(args) == 1 && strings.HasSuffix(args[0], ".encoded.txt") {
+		filePath := args[0]
+		fileContent, err := os.ReadFile(filePath)
+		if err != nil {
+			fmt.Printf("\033[41mError:\033[0m\n Error reading file! \"%s\"\n", err)
+			return
+		}
+		input = string(fileContent)
+
+		decode(input, *multiLineFlag)
+		return
+	}
 
 	if *multiLineFlag {
 		var input string
 
-		if len(args) == 1 && strings.HasSuffix(args[0], ".encoded.txt") {
-			filePath := args[0]
-			fileContent, err := os.ReadFile(filePath)
-			if err != nil {
-				fmt.Println("\033[41mError:\033[0m\n Error reading file: %s\n", err)
-				return
-			}
-			input = string(fileContent)
-			decode(input, *multiLineFlag)
+		// if len(args) == 1 && strings.HasSuffix(args[0], ".encoded.txt") {
+		// 	filePath := args[0]
+		// 	fileContent, err := os.ReadFile(filePath)
+		// 	if err != nil {
+		// 		fmt.Println("\033[41mError:\033[0m\n Error reading file: %s\n", err)
+		// 		return
+		// 	}
+		// 	input = string(fileContent)
+		// 	decode(input, *multiLineFlag)
 
-		} else if len(args) == 0 {
+		if len(args) == 0 {
 			fmt.Println("Enter multi-line input (Ctrl+D to finish):")
 			input = handleMultiLineInput()
 			decode(input, *multiLineFlag)
 
-			// } else if len(args) == 1 && strings.HasSuffix(args[0], ".encoded.txt") {
-			// 	filePath := args[0]
-			// 	fileContent, err := os.ReadFile(filePath)
-			// 	if err != nil {
-			// 		fmt.Println("\033[41mError:\033[0m\n Error reading file: %s\n", err)
-			// 		return
-			// 	}
-			// 	input = string(fileContent)
-
 		} else {
-			fmt.Println("\033[41mError:\033[0m\n Invalid usage with -m flag.")
+			// fmt.Println()
+			fmt.Println("\n\033[41mError:\033[0m\n Invalid usage with -m flag.")
 			displayTheUsage()
 			return
 		}
@@ -72,17 +79,19 @@ func main() {
 			if len(args) == 1 { // kontrollib, kas peale lippude (flags) on antud veel üks argument ja selleks on siis args[0]
 				decode(args[0], *multiLineFlag)
 			} else {
-				displayTheUsage()
+				// fmt.Println("lihtsalt väike testi print siia") // Selle asemel peaks olema decode funktsiooni väljakutse
+
+				// displayTheUsage()
 				return
 			}
 			// fmt.Println("That was decoding!")
-			fmt.Println(input) // Selle asemel peaks olema decode funktsiooni väljakutse
+			// fmt.Println("lihtsalt väike testi print siia") // Selle asemel peaks olema decode funktsiooni väljakutse
 
 		}
 	} else {
 
 		if len(args) != 1 {
-			fmt.Println("\n\033[41mError:\033[0m\n No input provided or too many arguments")
+			fmt.Println("\n\033[41mError:\033[0m\n No correct input provided or too many arguments")
 			displayTheUsage()
 			return
 		}
@@ -97,6 +106,11 @@ func main() {
 			return
 		}
 	}
+	if strings.Contains(args[0], "[]") {
+		fmt.Println("\n\033[41mError:\033[0m\n There are no arguments between square brackets")
+		fmt.Println()
+		return
+	}
 
 }
 
@@ -104,13 +118,18 @@ func main() {
 //		if multiLine {
 //			handleMultiLineInput()
 func decode(input string, multiLine bool) {
+	// fmt.Println("lihtsalt väike testi print siia decode functsiooni alguses")
+
 	if multiLine {
 		// Mitmerealise sisendi dekodeerimine
-		lines := strings.Split(input, "\n")
-		for _, line := range lines {
-			decodedLine, success := decodeString(line)
+		lines := strings.Split(input, "\n") //  kasutatakse sisendi jagamiseks eraldi ridadeks. See funktsioon tagastab ridade massiivi,
+		// kus iga element on üks rida sisendist.
+		for _, line := range lines { // käiakse läbi kõik read. Iga rida antakse edasi decodeString funktsioonile, mis dekodeerib selle rea sisu.
+			decodedLine, success := decodeString(line) // funktsioon tagastab kaks väärtust: dekodeeritud teksti ja bool'i,
+			// mis näitab, kas dekodeerimine oli edukas (success).
 			if success {
 				fmt.Println(decodedLine)
+
 			} else {
 				// Kui dekodeerimine ebaõnnestub, võib väljastada veateate või käidelda vea
 				fmt.Println("\n\033[41mError:\033[0m\n Multiline decoding failed")
@@ -121,11 +140,15 @@ func decode(input string, multiLine bool) {
 		}
 	} else {
 		// Decode single line
-		decodedString, success := decodeString(input)
+		decodedString, success := decodeString(input) // Sisend antakse otse decodeString funktsioonile, mis üritab seda dekodeerida.
 		if success {
 			fmt.Println(decodedString)
+			// fmt.Println("lihtsalt väike testi print siia decode funcist")
+
 		} else {
 			fmt.Println("\n\033[41mError:\033[0m\n Decoding failed")
+			fmt.Println()
+
 			return
 
 		}
@@ -146,14 +169,14 @@ func decodeString(input string) (string, bool) {
 
 	if !isBracketsBalanced(input) {
 		displayTheUsage()
-		fmt.Println("\n\033[41mError:\033[0m\n Square brackets are unbalanced\n")
+		fmt.Println("\n\033[41mError:\033[0m\n Square brackets are unbalanced")
 		return "", false
 	}
 
 	// var result string
 	if strings.Contains(input, "[]") {
 		displayTheUsage()
-		return "\n\033[41mError:\033[0m\n There is no arguments between square brackets\n", false
+		return "", false
 	}
 
 	// Implement decoding logic
@@ -224,10 +247,10 @@ func isBracketsBalanced(input string) bool {
 }
 
 func displayTheUsage() {
-	fmt.Println("\n")
+	// fmt.Println()
 
-	fmt.Println("\033[41m Usage instructions are coming here: \033[0m")
-	fmt.Println("\n")
+	fmt.Println("\n\033[41m Usage instructions are coming here: \033[0m")
+	fmt.Println()
 }
 
 // 	fmt.Println("\033[45mFor decoding\033[0m")
