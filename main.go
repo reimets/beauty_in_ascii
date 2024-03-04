@@ -213,22 +213,42 @@ func encode(input string, multiLine bool) {
 
 // Logic for encoding, handling character repetition and encoding accordingly.
 func encodeString(input string) (string, bool) {
-	var encodedBuilder strings.Builder
-	count := 1
+	var encodedBuilder strings.Builder // Creates a new string builder for constructing the encoded string.
+	i := 0                             // Initialize the index for traversing the input string.
 
-	for i := 1; i <= len(input); i++ {
-		if i == len(input) || input[i] != input[i-1] {
-			if count > 1 {
-				encodedBuilder.WriteString(fmt.Sprintf("[%d %c]", count, input[i-1]))
-			} else {
-				encodedBuilder.WriteRune(rune(input[i-1]))
-			}
-			count = 1
-		} else {
-			count++
+	for i < len(input) {
+		count := 1 // Initialize the count of consecutive characters.
+		// Check if we are at the end or if the next symbol is the same as the current one.
+		for i+count < len(input) && input[i] == input[i+count] {
+			count++ // Increment count if the next character is the same.
 		}
+		if count > 1 {
+			// If there are more than one of the same character in sequence, encode them.
+			encodedBuilder.WriteString(fmt.Sprintf("[%d %c]", count, input[i])) // Add the encoded sequence to the builder.
+			i += count                                                          // Move the index forward by the count.
+			continue                                                            // Skip to the next iteration of the loop.
+		}
+
+		// Check for a two-character pattern only if there are enough characters following it.
+		if i+1 < len(input) {
+			nextPatternCount := 1 // Initialize the count for the two-character pattern.
+			// Loop to find if the next two characters form a repeating pattern.
+			for i+nextPatternCount*2 < len(input) && i+nextPatternCount*2+1 < len(input) && input[i] == input[i+nextPatternCount*2] && input[i+1] == input[i+nextPatternCount*2+1] {
+				nextPatternCount++ // Increment pattern count if a repeating pattern is found.
+			}
+			if nextPatternCount > 1 {
+				// If a repeating pattern is found, encode it.
+				encodedBuilder.WriteString(fmt.Sprintf("[%d %s]", nextPatternCount, input[i:i+2])) // Add the encoded pattern to the builder.
+				i += nextPatternCount * 2                                                          // Move the index forward by the pattern length times the count.
+				continue                                                                           // Skip to the next iteration of the loop.
+			}
+		}
+
+		// If no condition is met, simply add the character to the result.
+		encodedBuilder.WriteString(fmt.Sprintf("%c", input[i])) // Add the single character to the builder.
+		i++                                                     // Move the index forward by one.
 	}
-	return encodedBuilder.String(), true
+	return encodedBuilder.String(), true // Return the encoded string and true indicating success.
 }
 
 // Reads multi-line input from standard input using bufio.Scanner.
