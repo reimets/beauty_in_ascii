@@ -58,12 +58,14 @@ For decoding from file:            use file with the end ".art.txt". For example
 For multiline encoding from input: add "-m" & "-e" (example: go run main.go -m -e)
 and next lines enter for example:  
           
+``` bash
    *   *  
   *** *** 
   ******* 
    *****  
     ***   
-     *    
+     *  
+```   
 
  NB! After completing the multi-line input in the terminal, please push "enter" and then the EOF (End Of File) character by pressing CTRL+D on Linux/MacOS systems or CTRL+Z on Windows systems. This signals to the program that input reading is finished. 
 
