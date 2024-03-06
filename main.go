@@ -171,7 +171,7 @@ func decodeString(input string) (string, bool) {
 
 			number, err := strconv.Atoi(arguments[0])
 			if err != nil || arguments[1] == "" {
-				displayTheUsage()
+				// displayTheUsage()
 				return "", false
 			}
 
